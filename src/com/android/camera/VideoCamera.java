@@ -97,6 +97,7 @@ public class VideoCamera extends BaseCamera
     private static final int CLEAR_SCREEN_DELAY = 4;
     private static final int UPDATE_RECORD_TIME = 5;
     private static final int ENABLE_SHUTTER_BUTTON = 6;
+    private static final int DELAYED_ONRESUME_FUNCTION = 7;
 
     private static final int SCREEN_DELAY = 1000;
 
@@ -209,6 +210,10 @@ public class VideoCamera extends BaseCamera
         public void handleMessage(Message msg) {
             switch (msg.what) {
 
+                case DELAYED_ONRESUME_FUNCTION: {
+                    delayedOnResume();
+                    break;
+                }
                 case ENABLE_SHUTTER_BUTTON:
                     mShutterButton.setEnabled(true);
                     break;
@@ -694,6 +699,16 @@ public class VideoCamera extends BaseCamera
         }
         keepScreenOnAwhile();
 
+        changeHeadUpDisplayState();
+
+        /* Postpone the non-critical functionality till after the
+         * activity is displayed, so that the camera frames are
+         * displayed sooner on the screen.*/
+        mHandler.sendEmptyMessageDelayed(DELAYED_ONRESUME_FUNCTION, 200);
+    }
+
+    private void delayedOnResume() {
+
         // install an intent filter to receive SD card related events.
         IntentFilter intentFilter =
                 new IntentFilter(Intent.ACTION_MEDIA_MOUNTED);
@@ -711,8 +726,6 @@ public class VideoCamera extends BaseCamera
                 showStorageHint();
             }
         }, 200);
-
-        changeHeadUpDisplayState();
 
         updateThumbnailButton();
     }
@@ -754,6 +767,10 @@ public class VideoCamera extends BaseCamera
         } catch (Throwable ex) {
             closeCamera();
             throw new RuntimeException("startPreview failed", ex);
+        }
+
+        if (CameraSettings.isCamcoderFocusAtStart()) {
+            mCameraDevice.autoFocus(null);
         }
     }
 
@@ -984,13 +1001,13 @@ public class VideoCamera extends BaseCamera
      *
      * @return number of bytes available, or an ERROR code.
      */
-    private static long getAvailableStorage() {
+    private long getAvailableStorage() {
         try {
             if (!ImageManager.hasStorage()) {
                 return NO_STORAGE_ERROR;
             } else {
                 String storageDirectory =
-                        Environment.getExternalStorageDirectory().toString();
+                        ImageManager.getStorageDirectory();
                 StatFs stat = new StatFs(storageDirectory);
                 return (long) stat.getAvailableBlocks()
                         * (long) stat.getBlockSize();
@@ -1140,7 +1157,7 @@ public class VideoCamera extends BaseCamera
         String title = createName(dateTaken);
         String filename = title + 
             (MediaRecorder.OutputFormat.MPEG_4 == mProfile.fileFormat ? ".m4v" : ".3gp"); // Used when emailing.
-        String cameraDirPath = ImageManager.CAMERA_IMAGE_BUCKET_NAME;
+        String cameraDirPath = ImageManager.getCameraImageDirectory();
         String filePath = cameraDirPath + "/" + filename;
         File cameraDir = new File(cameraDirPath);
         cameraDir.mkdirs();
@@ -1317,6 +1334,9 @@ public class VideoCamera extends BaseCamera
             return;
         }
 
+        if (CameraSettings.isCamcoderFocusAtStart()) {
+            mCameraDevice.autoFocus(null);
+        }
         CameraSettings.setContinuousAf(mParameters, true);
         setCameraHardwareParameters();
 
@@ -1515,7 +1535,7 @@ public class VideoCamera extends BaseCamera
                         dataLocation(),
                         ImageManager.INCLUDE_VIDEOS,
                         ImageManager.SORT_ASCENDING,
-                        ImageManager.CAMERA_IMAGE_BUCKET_ID);
+                        ImageManager.getCameraImageBucketId());
         int count = list.getCount();
         if (count > 0) {
             IImage image = list.getImageAt(count - 1);

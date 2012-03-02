@@ -100,6 +100,9 @@ public class CameraSettings {
     private static boolean mSamsungCamMode; // camcorder mode
     private static boolean mSamsungContinuousAf;
     private static boolean mSamsungSpecialSettings; // slow_ae and video_recording_gamma
+    private static boolean mIsOMAP4Camera;
+
+    private static boolean sFocusCamcorderAtStart = true;
 
     public static final String FOCUS_MODE_TOUCH = "touch";
 
@@ -109,6 +112,9 @@ public class CameraSettings {
         mParameters = parameters;
         mCameraInfo = cameraInfo;
         mCameraId = cameraId;
+        mIsOMAP4Camera = mContext.getResources().getBoolean(R.bool.isOMAP4Camera);
+        sFocusCamcorderAtStart = mContext.getResources().getBoolean(
+                R.bool.focusCamcorderAtStart);
     }
 
     public PreferenceGroup getPreferenceGroup(int preferenceRes) {
@@ -326,20 +332,9 @@ public class CameraSettings {
             sTouchFocusParameter = "mot-areas-to-focus";
             sTouchFocusNeedsRect = true;
             return true;
-        }
-        if (mParameters.get("camera-name") != null &&
-            mParameters.get("s3d-supported") != null) {
-            /* Similar hack to HTC, for OMAP4. These do export the
-             * "touch" focus mode, but they don't have the param
-             * listed until it's used */
-            sTouchFocusParameter = "touch-position";
-            sTouchFocusNeedsRect = false;
-            /* yes, false. If it isn't listed in the focus modes, it
-             * isn't supported */
+        } else {
             return false;
         }
-
-        return false;
     }
 
     public static String getTouchFocusParameterName() {
@@ -394,6 +389,11 @@ public class CameraSettings {
                         R.string.pref_camera_id_entry_front);
                 iconIds[i] = R.drawable.ic_menuselect_camera_facing_front;
                 largeIconIds[i] = R.drawable.ic_viewfinder_camera_facing_front;
+            } else if (mIsOMAP4Camera && i>=2) {
+                entries[i] = mContext.getString(
+                        R.string.pref_camera_id_entry_dual);
+                iconIds[i] = R.drawable.ic_menuselect_camera_facing_back;
+                largeIconIds[i] = R.drawable.ic_viewfinder_camera_facing_back;
             } else {
                 entries[i] = mContext.getString(
                         R.string.pref_camera_id_entry_back);
@@ -611,11 +611,19 @@ public class CameraSettings {
             params.set("nv-mode-hint", on ? "video" : "still");
         } else if (mSamsungCamMode) {
             params.set("cam_mode", on ? "1" : "0");
+        } else if (mIsOMAP4Camera) {
+            params.set("mode", on ? "video-mode" : "high-quality");
+            params.set("sei-encoding-type", "sei_enc_2010");
         }
 
         if (on && params.get("focus-mode-values").indexOf("continuous-video") != -1) {
             // Galaxy S2
             params.set("focus-mode", "continuous-video");
+        }
+
+        if (on && params.get("focus-mode-values").indexOf("caf") != -1) {
+            // OMAP4
+            params.set("focus-mode", "caf");
         }
 
         if (mSamsungSpecialSettings) {
@@ -660,6 +668,10 @@ public class CameraSettings {
         // reset to 3264x2448x15 when attempting Full HD recording.
         params.setPreviewSize(1280, 720); 
         params.set("preview-frame-rate", "30"); 
+    }
+
+    public static boolean isCamcoderFocusAtStart() {
+        return sFocusCamcorderAtStart;
     }
 
 }

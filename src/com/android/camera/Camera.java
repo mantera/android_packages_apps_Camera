@@ -49,7 +49,6 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 import android.os.MessageQueue;
-import android.preference.CheckBoxPreference;
 import android.provider.MediaStore;
 import android.provider.Settings;
 import android.util.Log;
@@ -639,7 +638,12 @@ public class Camera extends BaseCamera implements View.OnClickListener,
                     mHandler.sendEmptyMessageDelayed(RESTART_PREVIEW, delay);
                 }
             }
-            mImageCapture.storeImage(jpegData, camera, mLocation);
+
+            if(jpegData != null) {
+                mImageCapture.storeImage(jpegData, camera, mLocation);
+            } else {
+                Log.e(TAG, "null jpeg data, not storing");
+            }
 
             // Calculate this in advance of each shot so we don't add to shutter
             // latency. It's true that someone else could write to the SD card in
@@ -743,14 +747,21 @@ public class Camera extends BaseCamera implements View.OnClickListener,
             try {
                 long dateTaken = System.currentTimeMillis();
                 String title = createName(dateTaken);
-                String filename = title + ".jpg";
+                String fileExtension = "jpg";
+                String picFormat = mParameters.get("picture-format");
+                if (picFormat != null &&
+                      (picFormat.equals("mpo") || picFormat.equals("jps"))) {
+                    fileExtension = picFormat;
+                }
+                String filename = title + "." + fileExtension;
                 int[] degree = new int[1];
                 mLastContentUri = ImageManager.addImage(
                         mContentResolver,
                         title,
                         dateTaken,
                         loc, // location from gps/network
-                        ImageManager.CAMERA_IMAGE_BUCKET_NAME, filename,
+                        ImageManager.getCameraImageDirectory(),
+                        filename,
                         null, data,
                         degree);
                 return degree[0];
@@ -1126,6 +1137,7 @@ public class Camera extends BaseCamera implements View.OnClickListener,
     }
 
     private void checkStorage() {
+        ImageManager.updateStorageDirectory(this);
         calculatePicturesRemaining();
         updateStorageHint(mPicturesRemaining);
     }
@@ -1822,7 +1834,7 @@ public class Camera extends BaseCamera implements View.OnClickListener,
             dataLocation(),
             ImageManager.INCLUDE_IMAGES,
             ImageManager.SORT_ASCENDING,
-            ImageManager.CAMERA_IMAGE_BUCKET_ID);
+            ImageManager.getCameraImageBucketId());
         int count = list.getCount();
         if (count > 0) {
             IImage image = list.getImageAt(count - 1);
@@ -2032,7 +2044,7 @@ public class Camera extends BaseCamera implements View.OnClickListener,
         String jpegQuality = mPreferences.getString(
                 CameraSettings.KEY_JPEG_QUALITY,
                 getString(R.string.pref_camera_jpegquality_default));
-        mParameters.setJpegQuality(JpegEncodingQualityMappings.getQualityNumber(jpegQuality));
+        mParameters.setJpegQuality(JpegEncodingQualityMappings.getQualityNumber(mCameraId, jpegQuality));
 
 
 
@@ -2126,11 +2138,6 @@ public class Camera extends BaseCamera implements View.OnClickListener,
             mFocusMode = mPreferences.getString(
                     CameraSettings.KEY_FOCUS_MODE,
                     getString(R.string.pref_camera_focusmode_default));
-
-            // Set capture mode.
-            mCaptureMode = mPreferences.getString(
-                    CameraSettings.KEY_CAPTURE_MODE,
-                    getString(R.string.pref_camera_capturemode_entry_default));
 
             if (isSupported(mFocusMode, mParameters.getSupportedFocusModes())) {
                 mParameters.setFocusMode(mFocusMode);
@@ -2316,7 +2323,7 @@ public class Camera extends BaseCamera implements View.OnClickListener,
     }
 
     private int calculatePicturesRemaining() {
-        mPicturesRemaining = MenuHelper.calculatePicturesRemaining();
+        mPicturesRemaining = MenuHelper.calculatePicturesRemaining(this);
         return mPicturesRemaining;
     }
 
@@ -2522,12 +2529,12 @@ class JpegEncodingQualityMappings {
 
     // Retrieve and return the Jpeg encoding quality number
     // for the given quality level.
-    public static int getQualityNumber(String jpegQuality) {
+    public static int getQualityNumber(int mCameraId, String jpegQuality) {
         Integer quality = mHashMap.get(jpegQuality);
         if (quality == null) {
             Log.w(TAG, "Unknown Jpeg quality: " + jpegQuality);
             return DEFAULT_QUALITY;
         }
-        return CameraProfile.getJpegEncodingQualityParameter(quality.intValue());
+        return CameraProfile.getJpegEncodingQualityParameter(mCameraId, quality.intValue());
     }
 }

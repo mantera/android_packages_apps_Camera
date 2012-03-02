@@ -122,6 +122,8 @@
     <string name="pref_camera_id_entry_back">Back</string>
     <!-- In select camera setting, front-facing camera. [CHAR LIMIT=14] -->
     <string name="pref_camera_id_entry_front">Front</string>
+    <!-- In select camera setting, dual camera. [CHAR LIMIT=14] -->
+    <string name="pref_camera_id_entry_dual">3D</string>
 
     <!-- Settings screen, setting title text -->
     <string name="pref_camera_recordlocation_title">Store location</string>
@@ -154,6 +156,7 @@
 
     <!-- Settings screen, Picture size dialog radio button choices -->
     <string name="pref_camera_picturesize_entry_3264x2448">8M Pixels</string>
+    <string name="pref_camera_picturesize_entry_3264x1968">6.5M Pixels (wide)</string>
     <string name="pref_camera_picturesize_entry_3264x1952">6M Pixels (wide)</string>
     <string name="pref_camera_picturesize_entry_2592x1936">5M Pixels</string>
     <string name="pref_camera_picturesize_entry_2592x1552">4M Pixels (wide)</string>
@@ -208,6 +211,11 @@
     <string name="pref_camera_other_settings_title">Other settings</string>
     <string name="pref_camera_timer_duration">Timer duration</string>
     <string name="pref_camera_timer_duration_summary">Select duration for camera timer</string>
+    <string name="pref_camera_storage_external">Use external SD card</string>
+    <string name="pref_camera_storage_external_summary_off">Store photos and videos on internal phone memory (free space: %s)</string>
+    <string name="pref_camera_storage_external_summary_on">Store photos and videos on removable SD card (free space: %s)</string>
+    <string name="pref_camera_mega_bytes">MB</string>
+    <string name="pref_camera_giga_bytes">GB</string>
 
     <!-- More Settings screen, search button title -->
     <string name="pref_camera_search_shutter_title">Search Shutter</string>
