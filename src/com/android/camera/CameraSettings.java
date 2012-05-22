@@ -290,10 +290,47 @@ public class CameraSettings {
     }
 
     private boolean checkTouchFocus() {
-        sTouchFocusParameter = mContext.getResources().getString(R.string.touchFocusParameter);
-        sTouchFocusNeedsRect = mContext.getResources().getBoolean(R.bool.touchFocusNeedsRect);
-
-        if (sTouchFocusParameter != null && sTouchFocusParameter.length() != 0) {
+        Log.e(TAG, "Check touch focus support");
+        if (mParameters.get("taking-picture-zoom") != null ||
+            mParameters.get("touch-focus") != null) {
+            /* HTC camera, which always have touch-to-focus support. Unfortunately
+             * the touch-to-focus parameter 'touch-focus' is not present at initialization
+             * time, which is why we need to resort to another HTC specific parameter
+             *
+             * The 'touch-focus' parameter is checked anyway so that libcamera.so wrappers
+             * may implement the HTC's inteface without implenting its quirk.
+             */
+            sTouchFocusParameter = "touch-focus";
+            sTouchFocusNeedsRect = false;
+            return true;
+        }
+        if (mParameters.get("nv-areas-to-focus") != null) {
+            /* Nvidia camera with touch-to-focus support */
+            sTouchFocusParameter = "nv-areas-to-focus";
+            sTouchFocusNeedsRect = true;
+            return true;
+        }
+        Log.e(TAG, "Check touch focus Triumph = " + mParameters.get("touch-af-aec-values"));
+	if (mParameters.get("touch-af-aec-values") != null) {
+		if (mParameters.get("touch-af-aec-values").equals("touch-off")) {
+		    Log.e(TAG, "Front cam Triumph - NO touch focus and no autofocus");
+		} else {
+		    /* mt9x sensors support this; hm (front cam) does not */
+		    sTouchFocusParameter = "touch-af-aec";
+		    sTouchFocusNeedsRect = false;
+		    Log.e(TAG, "Enable touch focus Triumph");
+		    return true;
+       	 	}
+	}
+        if (mParameters.get("mot-areas-to-focus") != null ||
+            mParameters.get("mot-max-burst-size") != null) {
+            /* Motorola camera with touch-to-focus support.
+             * Here we also check for Motorola-specific mot-max-burst-size, because
+             * on some of their libcameras, something similar to the HTC situation
+             * explained earlier happens too.
+             */
+            sTouchFocusParameter = "mot-areas-to-focus";
+            sTouchFocusNeedsRect = true;
             return true;
         } else {
             return false;
