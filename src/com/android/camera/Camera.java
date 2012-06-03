@@ -71,7 +71,6 @@ import android.view.MenuItem.OnMenuItemClickListener;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.TextView;
-import com.android.camera.dcim.DCIMHelper;
 import com.android.camera.gallery.IImage;
 import com.android.camera.gallery.IImageList;
 import com.android.camera.ui.CameraHeadUpDisplay;
@@ -361,7 +360,6 @@ public class Camera extends BaseCamera implements View.OnClickListener,
         queue.addIdleHandler(new MessageQueue.IdleHandler() {
             public boolean queueIdle() {
                 ImageManager.ensureOSXCompatibleFolder();
-                DCIMHelper.convertToDCIM();
                 return false;
             }
         });
@@ -749,7 +747,7 @@ public class Camera extends BaseCamera implements View.OnClickListener,
         private int storeImage(byte[] data, Location loc) {
             try {
                 long dateTaken = System.currentTimeMillis();
-                String title = /*createName(dateTaken)*/DCIMHelper.getNameForNewImage();
+                String title = createName(dateTaken);
                 String fileExtension = "jpg";
                 String picFormat = mParameters.get("picture-format");
                 if (picFormat != null &&
@@ -763,8 +761,8 @@ public class Camera extends BaseCamera implements View.OnClickListener,
                         title,
                         dateTaken,
                         loc, // location from gps/network
-
-                        /*ImageManager.CAMERA_IMAGE_BUCKET_NAME*/DCIMHelper.getDirectoryForNewImage(), filename,
+                        ImageManager.getCameraImageDirectory(),
+                        filename,
                         null, data,
                         degree);
                 return degree[0];
@@ -1851,7 +1849,7 @@ public class Camera extends BaseCamera implements View.OnClickListener,
             dataLocation(),
             ImageManager.INCLUDE_IMAGES,
             ImageManager.SORT_ASCENDING,
-            ImageManager.CAMERA_IMAGE_BUCKET_ID());
+            ImageManager.getCameraImageBucketId());
         int count = list.getCount();
         if (count > 0) {
             IImage image = list.getImageAt(count - 1);
